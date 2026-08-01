@@ -1,0 +1,93 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RewardType {
+  DISCOUNT
+  COUPON
+  NO_PRIZE
+}
+
+enum SpinResult {
+  WIN
+  LOSE
+}
+
+enum CouponStatus {
+  AVAILABLE
+  ASSIGNED
+  EXPIRED
+}
+
+model Reward {
+  id          Int        @id @default(autoincrement())
+  title       String
+  type        RewardType
+  probability Float
+  isActive    Boolean    @default(true)
+
+  coupons       Coupon[]
+  wheelSegments WheelSegment[]
+  spins         Spin[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("rewards")
+}
+
+model WheelSegment {
+  id Int @id @default(autoincrement())
+
+  position Int    @unique
+  label    String
+  color    String
+
+  rewardId Int
+  reward   Reward @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@map("wheel_segments")
+}
+
+model Coupon {
+  id Int @id @default(autoincrement())
+
+  code String @unique
+
+  rewardId Int
+  reward   Reward @relation(fields: [rewardId], references: [id])
+
+  status   CouponStatus @default(AVAILABLE)
+
+  assignedAt DateTime?
+
+  spin Spin?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("coupons")
+}
+
+model Spin {
+  id Int @id @default(autoincrement())
+
+  rewardId Int
+  reward   Reward @relation(fields: [rewardId], references: [id], onDelete: Restrict)
+
+  couponId Int?    @unique
+  coupon   Coupon? @relation(fields: [couponId], references: [id])
+
+  result SpinResult
+
+  createdAt DateTime @default(now())
+
+  @@map("spins")
+}
